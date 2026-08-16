@@ -3,12 +3,12 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>LabMate 實驗室開發助手</title>
-    <link rel="stylesheet" href="/styles.css?v=3" />
+    <title>Bob Lab Agent 實驗室開發助手</title>
+    <link rel="stylesheet" href="/styles.css?v=5" />
   </head>
   <body>
     <header>
-      <div class="brand"><span>LM</span><div><b>LabMate</b><small>實驗室開發助手</small></div></div>
+      <div class="brand"><span>BOB</span><div><b>Bob Lab Agent</b><small>實驗室開發助手</small></div></div>
       <div id="status" class="status checking">正在檢查 Ollama…</div>
     </header>
 
@@ -18,6 +18,7 @@
           <p class="eyebrow">DEVELOPER TOOLKIT</p>
           <h1>Bob Lab Agent</h1>
           <p>從環境設定到版本控制，整理實驗室常用的開發工具與操作方式。</p>
+          <div id="knowledgeStatus" class="knowledge-status">正在讀取知識庫…</div>
         </section>
 
         <section>
@@ -29,8 +30,8 @@
 
       <section class="chat-panel">
         <div class="chat-head">
-          <div><p class="eyebrow">ASK LABMATE</p><h2>遇到什麼開發問題？</h2></div>
-          <label>模型<select id="model"><option>qwen3:1.7b</option></select></label>
+          <div><p class="eyebrow">ASK BOB</p><h2>遇到什麼開發問題？</h2></div>
+          <div class="chat-actions"><button id="clearChat" type="button">清除對話</button><label>模型<select id="model"><option>qwen3:1.7b</option></select></label></div>
         </div>
 
         <div class="suggestions">
@@ -41,8 +42,8 @@
 
         <div id="messages" class="messages">
           <article class="message assistant">
-            <div class="avatar">LM</div>
-            <div><b>LabMate</b><p>嗨！我是實驗室的開發助手。我會根據開發工具知識庫回答並標示來源。你可以從 Git、Python、VS Code 或錯誤排查開始問。</p></div>
+            <div class="avatar">BOB</div>
+            <div><b>Bob Lab Agent</b><p>嗨！我是實驗室的開發助手。我會根據開發工具知識庫回答並標示來源。你可以從 Git、Python、VS Code 或錯誤排查開始問。</p></div>
           </article>
         </div>
 
@@ -53,6 +54,6 @@
         </form>
       </section>
     </main>
-    <script src="/app.js?v=4"></script>
+    <script src="/app.js?v=5"></script>
   </body>
 </html>

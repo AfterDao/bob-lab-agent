@@ -9,3 +9,6 @@ venv/
 ppt_build/
 *.pptx
 *.pptx.inspect.ndjson
+
+# Runtime feedback data (may contain user questions)
+data/
