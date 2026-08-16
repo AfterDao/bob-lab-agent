@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LabMate 實驗室開發助手</title>
+    <link rel="stylesheet" href="/styles.css?v=3" />
+  </head>
+  <body>
+    <header>
+      <div class="brand"><span>LM</span><div><b>LabMate</b><small>實驗室開發助手</small></div></div>
+      <div id="status" class="status checking">正在檢查 Ollama…</div>
+    </header>
+
+    <main>
+      <aside>
+        <section class="welcome">
+          <p class="eyebrow">DEVELOPER TOOLKIT</p>
+          <h1>Bob Lab Agent</h1>
+          <p>從環境設定到版本控制，整理實驗室常用的開發工具與操作方式。</p>
+        </section>
+
+        <section>
+          <div class="section-title"><h2>開發能力清單</h2><span id="progressText">0 / 8</span></div>
+          <div class="progress"><div id="progressBar"></div></div>
+          <div id="checklist" class="checklist"></div>
+        </section>
+      </aside>
+
+      <section class="chat-panel">
+        <div class="chat-head">
+          <div><p class="eyebrow">ASK LABMATE</p><h2>遇到什麼開發問題？</h2></div>
+          <label>模型<select id="model"><option>qwen3:1.7b</option></select></label>
+        </div>
+
+        <div class="suggestions">
+          <button>Git 常用操作有哪些？</button>
+          <button>如何建立 Python 虛擬環境？</button>
+          <button>程式發生錯誤時怎麼排查？</button>
+        </div>
+
+        <div id="messages" class="messages">
+          <article class="message assistant">
+            <div class="avatar">LM</div>
+            <div><b>LabMate</b><p>嗨！我是實驗室的開發助手。我會根據開發工具知識庫回答並標示來源。你可以從 Git、Python、VS Code 或錯誤排查開始問。</p></div>
+          </article>
+        </div>
+
+        <p class="privacy">內容只傳送到這台電腦上的 Ollama，不使用付費 API。</p>
+        <form id="chatForm">
+          <textarea id="question" rows="2" maxlength="2000" placeholder="輸入問題，例如：我要怎麼建立 Python 虛擬環境？" required></textarea>
+          <button id="send" type="submit">送出</button>
+        </form>
+      </section>
+    </main>
+    <script src="/app.js?v=4"></script>
+  </body>
+</html>

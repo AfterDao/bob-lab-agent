@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.DS_Store
+
+# Local presentation reports and generated build files
+ppt_build/
+*.pptx
+*.pptx.inspect.ndjson
