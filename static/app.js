@@ -53,9 +53,89 @@ fetch("/api/health").then((response) => response.json()).then((data) => {
 });
 
 fetch("/api/knowledge/status").then((response) => response.json()).then((data) => {
-  knowledgeStatus.textContent = `知識庫：${data.documents} 份文件 · ${data.sections} 個段落`;
+  updateKnowledgeStatus(data);
 }).catch(() => {
   knowledgeStatus.textContent = "知識庫狀態無法取得";
+});
+
+function updateKnowledgeStatus(data) {
+  const versions = data.versions ? ` · ${data.versions} 個舊版本` : "";
+  knowledgeStatus.textContent = `知識庫：${data.documents} 份文件 · ${data.sections} 個段落${versions}`;
+}
+
+const knowledgeDialog = document.querySelector("#knowledgeDialog");
+const documentList = document.querySelector("#documentList");
+const documentName = document.querySelector("#documentName");
+const documentContent = document.querySelector("#documentContent");
+const documentSaveStatus = document.querySelector("#documentSaveStatus");
+let activeDocument = "";
+
+function startNewDocument() {
+  activeDocument = "";
+  documentName.value = "";
+  documentContent.value = "# 新文件\n\n## 說明\n\n請在這裡補充實驗室知識。\n";
+  documentSaveStatus.textContent = "新文件儲存後會立即加入搜尋。";
+  documentList.querySelectorAll("button").forEach((button) => button.classList.remove("active"));
+  documentName.focus();
+}
+
+function selectDocument(doc, button) {
+  activeDocument = doc.file;
+  documentName.value = doc.file;
+  documentContent.value = doc.content;
+  documentSaveStatus.textContent = "修改後儲存，系統會自動保留舊版本。";
+  documentList.querySelectorAll("button").forEach((item) => item.classList.remove("active"));
+  button?.classList.add("active");
+}
+
+async function loadDocuments(selectFile = "") {
+  const response = await fetch("/api/documents");
+  const documents = await response.json();
+  documentList.innerHTML = "";
+  documents.forEach((doc) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = doc.file;
+    button.addEventListener("click", () => selectDocument(doc, button));
+    documentList.appendChild(button);
+    if (doc.file === selectFile) selectDocument(doc, button);
+  });
+  if (!selectFile && documents.length) selectDocument(documents[0], documentList.firstElementChild);
+  if (!documents.length) startNewDocument();
+}
+
+document.querySelector("#manageKnowledge").addEventListener("click", async () => {
+  knowledgeDialog.showModal();
+  documentSaveStatus.textContent = "正在讀取文件…";
+  try {
+    await loadDocuments();
+  } catch {
+    documentSaveStatus.textContent = "無法讀取知識庫。";
+  }
+});
+document.querySelector("#closeKnowledge").addEventListener("click", () => knowledgeDialog.close());
+document.querySelector("#newDocument").addEventListener("click", startNewDocument);
+document.querySelector("#saveDocument").addEventListener("click", async () => {
+  const button = document.querySelector("#saveDocument");
+  button.disabled = true;
+  documentSaveStatus.textContent = "正在儲存…";
+  try {
+    const response = await fetch("/api/documents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ file: documentName.value, content: documentContent.value, original_file: activeDocument }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "儲存失敗");
+    activeDocument = data.file;
+    updateKnowledgeStatus(data.status);
+    await loadDocuments(data.file);
+    documentSaveStatus.textContent = data.created ? "新文件已建立並加入搜尋。" : "文件已更新，舊版本已備份。";
+  } catch (error) {
+    documentSaveStatus.textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
 });
 
 const messages = document.querySelector("#messages");

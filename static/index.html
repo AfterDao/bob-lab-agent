@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Bob Lab Agent 實驗室開發助手</title>
-    <link rel="stylesheet" href="/styles.css?v=5" />
+    <link rel="stylesheet" href="/styles.css?v=6" />
   </head>
   <body>
     <header>
@@ -31,7 +31,7 @@
       <section class="chat-panel">
         <div class="chat-head">
           <div><p class="eyebrow">ASK BOB</p><h2>遇到什麼開發問題？</h2></div>
-          <div class="chat-actions"><button id="clearChat" type="button">清除對話</button><label>模型<select id="model"><option>qwen3:1.7b</option></select></label></div>
+          <div class="chat-actions"><button id="manageKnowledge" type="button">管理知識庫</button><button id="clearChat" type="button">清除對話</button><label>模型<select id="model"><option>qwen3:1.7b</option></select></label></div>
         </div>
 
         <div class="suggestions">
@@ -54,6 +54,20 @@
         </form>
       </section>
     </main>
-    <script src="/app.js?v=5"></script>
+    <dialog id="knowledgeDialog">
+      <div class="dialog-head"><div><p class="eyebrow">KNOWLEDGE CENTER</p><h2>知識庫管理中心</h2></div><button id="closeKnowledge" type="button" aria-label="關閉">×</button></div>
+      <div class="knowledge-layout">
+        <aside class="document-sidebar">
+          <button id="newDocument" type="button">＋ 新增文件</button>
+          <div id="documentList" class="document-list"></div>
+        </aside>
+        <section class="document-editor">
+          <label>檔案名稱<input id="documentName" maxlength="80" placeholder="例如：05-debugging.md" /></label>
+          <label>Markdown 內容<textarea id="documentContent" spellcheck="false" placeholder="# 文件標題&#10;&#10;## 操作方式"></textarea></label>
+          <div class="editor-actions"><span id="documentSaveStatus">修改既有文件時會自動保留舊版本。</span><button id="saveDocument" type="button">儲存文件</button></div>
+        </section>
+      </div>
+    </dialog>
+    <script src="/app.js?v=6"></script>
   </body>
 </html>

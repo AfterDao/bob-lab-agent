@@ -4,7 +4,9 @@ import json
 import mimetypes
 import os
 import re
+import shutil
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -23,6 +25,7 @@ HOST = os.getenv("LABMATE_HOST", "127.0.0.1")
 PORT = int(os.getenv("LABMATE_PORT", "8000"))
 DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:1.7b")
 FEEDBACK_LOCK = Lock()
+DOCUMENT_LOCK = Lock()
 
 STOPWORDS = {
     "如何", "怎麼", "什麼", "哪些", "可以", "請問", "我要", "使用", "一個",
@@ -140,8 +143,48 @@ def knowledge_status() -> dict[str, Any]:
     return {
         "documents": len(paths),
         "sections": len(chunks),
+        "versions": len(list((DATA_DIR / "versions").glob("*.md"))) if (DATA_DIR / "versions").exists() else 0,
         "updated_at": datetime.fromtimestamp(latest, timezone.utc).isoformat() if latest else None,
     }
+
+
+def validate_document_name(filename: str) -> str:
+    name = filename.strip()
+    if not name.lower().endswith(".md"):
+        name += ".md"
+    if (
+        not name
+        or name.lower() == ".md"
+        or len(name) > 80
+        or name in {".", ".."}
+        or ".." in name
+        or Path(name).name != name
+        or re.search(r'[\x00-\x1f<>:"/\\|?*]', name)
+    ):
+        raise ValueError("檔名只能使用一般文字、數字、連字號與底線。")
+    return name
+
+
+def save_document(filename: str, content: str, original_filename: str = "") -> dict[str, Any]:
+    name = validate_document_name(filename)
+    text = content.replace("\r\n", "\n").strip() + "\n"
+    if len(text) > 100_000:
+        raise ValueError("文件不可超過 100,000 字元。")
+    if not re.search(r"^#{1,3}\s+\S", text, flags=re.MULTILINE):
+        raise ValueError("文件至少需要一個 Markdown 標題，例如：# 文件名稱")
+    target = KNOWLEDGE_DIR / name
+    created = not target.exists()
+    original_name = validate_document_name(original_filename) if original_filename else ""
+    if target.exists() and original_name != name:
+        raise FileExistsError("已有同名文件，請改用其他檔名。")
+    with DOCUMENT_LOCK:
+        if target.exists():
+            version_dir = DATA_DIR / "versions"
+            version_dir.mkdir(parents=True, exist_ok=True)
+            stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+            shutil.copy2(target, version_dir / f"{stamp}__{name}")
+        target.write_text(text, encoding="utf-8")
+    return {"file": name, "created": created, "status": knowledge_status()}
 
 
 def ollama_request(path: str, payload: dict[str, Any] | None = None) -> Any:
@@ -250,6 +293,9 @@ class LabMateHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def is_local_request(self) -> bool:
+        return self.client_address[0] in {"127.0.0.1", "::1"}
+
     def do_GET(self) -> None:
         if self.path == "/api/health":
             try:
@@ -265,6 +311,18 @@ class LabMateHandler(BaseHTTPRequestHandler):
                 for path in sorted(KNOWLEDGE_DIR.glob("*.md"))
             ]
             self.send_json(200, documents)
+            return
+        if self.path.startswith("/api/documents/"):
+            raw_name = urllib.parse.unquote(self.path.removeprefix("/api/documents/").split("?", 1)[0])
+            try:
+                name = validate_document_name(raw_name)
+                path = KNOWLEDGE_DIR / name
+                if not path.is_file():
+                    self.send_json(404, {"error": "找不到這份知識文件。"})
+                    return
+                self.send_json(200, {"file": name, "content": path.read_text(encoding="utf-8")})
+            except ValueError as exc:
+                self.send_json(400, {"error": str(exc)})
             return
         if self.path == "/api/knowledge/status":
             self.send_json(200, knowledge_status())
@@ -286,12 +344,23 @@ class LabMateHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_POST(self) -> None:
-        if self.path not in {"/api/chat", "/api/feedback"}:
+        if self.path not in {"/api/chat", "/api/feedback", "/api/documents"}:
             self.send_error(404)
             return
         try:
             length = int(self.headers.get("Content-Length", "0"))
             payload = json.loads(self.rfile.read(length).decode("utf-8"))
+            if self.path == "/api/documents":
+                if not self.is_local_request():
+                    self.send_json(403, {"error": "知識庫只能在主機本機修改。"})
+                    return
+                result = save_document(
+                    str(payload.get("file", "")),
+                    str(payload.get("content", "")),
+                    str(payload.get("original_file", "")),
+                )
+                self.send_json(201 if result["created"] else 200, result)
+                return
             if self.path == "/api/feedback":
                 if payload.get("rating") not in {"up", "down"}:
                     self.send_json(400, {"error": "回饋格式不正確。"})
@@ -314,6 +383,10 @@ class LabMateHandler(BaseHTTPRequestHandler):
                 str(payload.get("model", DEFAULT_MODEL)),
                 history,
             ))
+        except FileExistsError as exc:
+            self.send_json(409, {"error": str(exc)})
+        except ValueError as exc:
+            self.send_json(400, {"error": str(exc)})
         except urllib.error.URLError:
             self.send_json(503, {"error": "無法連接 Ollama。請確認 Ollama 已啟動並已下載模型。"})
         except Exception as exc:

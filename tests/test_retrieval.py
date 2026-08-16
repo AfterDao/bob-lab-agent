@@ -1,6 +1,17 @@
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
-from app import answer_question, knowledge_status, retrieve, search, tokenize
+from app import (
+    answer_question,
+    knowledge_status,
+    retrieve,
+    search,
+    save_document,
+    tokenize,
+    validate_document_name,
+)
 
 
 class RetrievalTests(unittest.TestCase):
@@ -32,6 +43,27 @@ class RetrievalTests(unittest.TestCase):
         status = knowledge_status()
         self.assertGreaterEqual(status["documents"], 4)
         self.assertGreater(status["sections"], status["documents"])
+
+    def test_document_name_adds_markdown_extension(self):
+        self.assertEqual(validate_document_name("05-debugging"), "05-debugging.md")
+
+    def test_document_name_rejects_path_traversal(self):
+        with self.assertRaises(ValueError):
+            validate_document_name("../secret.md")
+
+    def test_save_document_creates_and_versions_markdown(self):
+        with TemporaryDirectory() as temp:
+            root = Path(temp)
+            knowledge = root / "knowledge"
+            data = root / "data"
+            knowledge.mkdir()
+            with patch("app.KNOWLEDGE_DIR", knowledge), patch("app.DATA_DIR", data):
+                created = save_document("guide", "# Guide\n\nFirst version")
+                updated = save_document("guide.md", "# Guide\n\nSecond version", "guide.md")
+            self.assertTrue(created["created"])
+            self.assertFalse(updated["created"])
+            self.assertIn("Second version", (knowledge / "guide.md").read_text(encoding="utf-8"))
+            self.assertEqual(len(list((data / "versions").glob("*.md"))), 1)
 
 
 if __name__ == "__main__":

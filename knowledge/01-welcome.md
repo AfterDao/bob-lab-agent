@@ -1,6 +1,6 @@
-# LabMate 使用範圍
+# Bob Lab Agent 使用範圍
 
-LabMate 是供實驗室成員長期使用的開發工具助手。目前知識庫涵蓋 VS Code、終端機、Git、Python、虛擬環境、套件管理、README 與錯誤排查。
+Bob Lab Agent 是供實驗室成員長期使用的開發工具助手。目前知識庫涵蓋 VS Code、終端機、Git、Python、虛擬環境、套件管理、README 與錯誤排查。
 
 ## 如何提問
 
